@@ -1,0 +1,228 @@
+layout: page
+title: "Descent Calculator"
+permalink: /descent-calc
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flight Sim Descent Calculator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header>
+    <div class="badge">Descent Calculator Tool</div>
+    <h1>✈ Descent Calculator</h1>
+    <p>Plan your Top of Descent for a smooth approach</p>
+  </header>
+
+  <div class="container">
+
+    <!-- ── Inputs ── -->
+    <div class="card">
+      <h2>Flight Parameters</h2>
+
+      <div class="grid">
+        <div class="field">
+          <label>Current Altitude</label>
+          <div class="input-wrap">
+            <input type="number" id="currentAlt" placeholder="35000" min="0" max="60000" />
+            <span class="unit">ft</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Target Altitude</label>
+          <div class="input-wrap">
+            <input type="number" id="targetAlt" placeholder="3000" min="0" max="60000" />
+            <span class="unit">ft</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Ground Speed</label>
+          <div class="input-wrap">
+            <input type="number" id="groundSpeed" placeholder="480" min="0" max="1000" />
+            <span class="unit">kts</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Distance to Destination</label>
+          <div class="input-wrap">
+            <input type="number" id="distToDest" placeholder="optional" min="0" />
+            <span class="unit">NM</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode toggle -->
+      <div style="margin-top: 18px;">
+        <label style="display:block; margin-bottom:8px;">Input Mode</label>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="modeAngle" onclick="setMode('angle')">Descent Angle</button>
+          <button class="mode-btn"        id="modeVS"    onclick="setMode('vs')">Vertical Speed</button>
+        </div>
+
+        <!-- Angle panel -->
+        <div id="panelAngle">
+          <label style="display:block; margin-bottom:8px;">Descent Angle</label>
+          <div class="angle-row">
+            <button class="angle-btn"        data-angle="2.5">2.5°</button>
+            <button class="angle-btn active" data-angle="3">3° (std)</button>
+            <button class="angle-btn"        data-angle="3.5">3.5°</button>
+            <button class="angle-btn"        data-angle="custom">Custom</button>
+          </div>
+          <div id="customAngleWrap" style="margin-top:10px; display:none;">
+            <div class="input-wrap">
+              <input type="number" id="customAngle" placeholder="3.0" min="1" max="10" step="0.1" />
+              <span class="unit">deg</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- V/S panel -->
+        <div id="panelVS" style="display:none;">
+          <label style="display:block; margin-bottom:8px;">Desired Vertical Speed</label>
+          <div class="input-wrap">
+            <input type="number" id="desiredVS" placeholder="1800" min="1" max="10000" />
+            <span class="unit">fpm</span>
+          </div>
+          <div style="margin-top:8px;">
+            <div class="angle-row">
+              <button class="angle-btn" data-vs="1000">1000</button>
+              <button class="angle-btn" data-vs="1500">1500</button>
+              <button class="angle-btn" data-vs="1800">1800</button>
+              <button class="angle-btn" data-vs="2000">2000</button>
+            </div>
+          </div>
+          <p style="font-size:0.75rem; color:var(--muted); margin-top:8px;">
+            The descent angle will be calculated from your V/S and ground speed.
+          </p>
+        </div>
+      </div>
+
+      <button class="calc-btn" onclick="calculate()">Calculate Descent</button>
+    </div>
+
+    <!-- ── Results ── -->
+    <div class="card" id="resultsCard">
+      <h2>Results</h2>
+      <div id="placeholder" class="placeholder">Enter your flight parameters above and hit Calculate.</div>
+      <div id="resultsContent" style="display:none;">
+        <div class="results-grid">
+          <div class="result-item">
+            <div class="result-label">TOD Distance</div>
+            <div class="result-value" id="rTOD">—</div>
+            <div class="result-unit">nautical miles</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Vertical Speed</div>
+            <div class="result-value" id="rVS">—</div>
+            <div class="result-unit">ft / min</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Time to Descend</div>
+            <div class="result-value" id="rTime">—</div>
+            <div class="result-unit">minutes</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Alt to Lose</div>
+            <div class="result-value" id="rAltLose">—</div>
+            <div class="result-unit">feet</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Descent Angle</div>
+            <div class="result-value" id="rAngle">—</div>
+            <div class="result-unit">degrees</div>
+          </div>
+          <div class="result-item">
+            <div class="result-label">Descent Rate</div>
+            <div class="result-value" id="rRatePer1k">—</div>
+            <div class="result-unit">NM per 1,000 ft</div>
+          </div>
+        </div>
+        <div id="statusBar" class="status hidden"></div>
+      </div>
+    </div>
+
+    <!-- ── How to Use ── -->
+    <div class="card">
+      <h2>How to Use</h2>
+      <div class="timeline">
+        <div class="step">
+          <div class="step-line"><div class="dot"></div><div class="vline"></div></div>
+          <div class="step-content">
+            <div class="step-title">Enter your current cruise altitude</div>
+            <div class="step-desc">This is the altitude you're flying at right now, e.g. FL350 = 35,000 ft.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line"><div class="dot"></div><div class="vline"></div></div>
+          <div class="step-content">
+            <div class="step-title">Enter your target altitude</div>
+            <div class="step-desc">Usually the airport field elevation + pattern altitude, or the initial approach fix (IAF) altitude. Common: 3,000 ft for most airports.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line"><div class="dot"></div><div class="vline"></div></div>
+          <div class="step-content">
+            <div class="step-title">Set your ground speed</div>
+            <div class="step-desc">Check your current GS in the flight simulator. This affects required vertical speed.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line"><div class="dot amber"></div><div class="vline"></div></div>
+          <div class="step-content">
+            <div class="step-title">Note the TOD distance</div>
+            <div class="step-desc">When you're <strong>TOD Distance</strong> NM from your destination, begin descending at the calculated vertical speed.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line"><div class="dot green"></div></div>
+          <div class="step-content">
+            <div class="step-title">Set V/S in flight simulator.</div>
+            <div class="step-desc">Use Autopilot → V/S mode and enter the calculated feet-per-minute value (as a negative number to descend).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Formula Reference ── -->
+    <div class="card">
+      <h2>Formula Reference</h2>
+      <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
+        <div>
+          <div style="color:var(--accent); font-weight:600; margin-bottom:2px;">Top of Descent Distance</div>
+          <div style="color:var(--muted);">TOD (NM) = Altitude to lose (ft) ÷ 1,000 × NM per 1,000 ft</div>
+        </div>
+        <hr />
+        <div>
+          <div style="color:var(--accent); font-weight:600; margin-bottom:2px;">Vertical Speed</div>
+          <div style="color:var(--muted);">VS (fpm) = Ground Speed (kts) × 101.27 × tan(descent angle°)</div>
+        </div>
+        <hr />
+        <div>
+          <div style="color:var(--accent); font-weight:600; margin-bottom:2px;">V/S → Descent Angle</div>
+          <div style="color:var(--muted);">Angle (°) = atan( VS (fpm) ÷ (GS (kts) × 101.27) ) × 180 ÷ π</div>
+        </div>
+        <hr />
+        <div>
+          <div style="color:var(--accent); font-weight:600; margin-bottom:2px;">V/S → TOD Distance</div>
+          <div style="color:var(--muted);">TOD (NM) = GS (kts) × (Alt to lose ÷ VS) ÷ 60</div>
+        </div>
+        <hr />
+        <div>
+          <div style="color:var(--accent); font-weight:600; margin-bottom:2px;">Quick Rule (3° / 3:1)</div>
+          <div style="color:var(--muted);">TOD ≈ Alt to lose ÷ 1,000 × 3 NM &nbsp;|&nbsp; VS ≈ GS × 5</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
